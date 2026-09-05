@@ -116,7 +116,10 @@ jobs:
 
   merge-report:
     name: Merge HTML report
-    if: ${{ !cancelled() }}
+    # Run whenever the test jobs actually executed (pass or fail), but skip the
+    # cascade when they were skipped because `quality` failed — there are no
+    # blob reports to merge in that case.
+    if: ${{ always() && needs.api-tests.result != 'skipped' && needs.ui-tests.result != 'skipped' }}
     needs: [api-tests, ui-tests]
     runs-on: ubuntu-latest
     steps:

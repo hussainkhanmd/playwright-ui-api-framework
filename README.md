@@ -4,13 +4,17 @@ Production-grade test automation framework built on **Playwright + TypeScript (s
 one toolchain, for both **UI** and **API** testing — layered architecture, dependency-injected
 fixtures, contract tests, sharded CI, Allure reporting, and an isolated experimental AI layer.
 
-<!-- Update OWNER/REPO once the GitHub remote exists. -->
-
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
-[![Allure Report](https://img.shields.io/badge/Allure-report-brightgreen)](https://OWNER.github.io/REPO/)
+[![CI](https://github.com/hussainkhanmd/playwright-ui-api-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/hussainkhanmd/playwright-ui-api-framework/actions/workflows/ci.yml)
+[![Allure Report](https://img.shields.io/badge/Allure-report-brightgreen)](https://hussainkhanmd.github.io/playwright-ui-api-framework/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 ![Node](https://img.shields.io/badge/node-20_LTS-339933?logo=node.js&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-1.63-2EAD33?logo=playwright&logoColor=white)
+
+<p align="center">
+  <img src="docs/assets/allure-dashboard.png" alt="Allure report — 53 tests, 100% passing across the UI and API projects" width="900">
+  <br>
+  <em>Allure 3 report from a local <code>npm test</code> run — full UI + API suite, 100% green.</em>
+</p>
 
 ---
 
@@ -111,8 +115,9 @@ Secrets are never committed — `.env` is git-ignored; CI injects real values as
 | `docker/Dockerfile`                    | Official Playwright image (`v1.63.0-noble`) for reproducible local/CI runs: `docker build -f docker/Dockerfile -t pwf . && docker run --rm pwf npm run test:api`.                                                                                    |
 | `.gitlab-ci.yml`, `ci/Jenkinsfile`     | Reference ports of the same pipeline for cross-platform CI.                                                                                                                                                                                          |
 
-**Repo setup after cloning:** add the GitHub remote, enable Pages (Settings → Pages → _GitHub Actions_),
-and optionally add `SLACK_WEBHOOK_URL` / `TEAMS_WEBHOOK_URL` secrets. Replace `OWNER/REPO` in the badges.
+**Repo setup after cloning:** enable Pages (Settings → Pages → _GitHub Actions_),
+and optionally add `SLACK_WEBHOOK_URL` / `TEAMS_WEBHOOK_URL` secrets. Update the `OWNER/REPO` slug in
+the badges above to your fork.
 
 ## AI-augmented layer (experimental, off by default)
 

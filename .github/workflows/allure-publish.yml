@@ -21,7 +21,9 @@ concurrency:
 
 jobs:
   publish:
-    if: ${{ github.event.workflow_run.conclusion != 'cancelled' }}
+    # Only publish when CI actually succeeded — a failed run uploads no
+    # `allure-results` artifact, so the download step would just error out.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
