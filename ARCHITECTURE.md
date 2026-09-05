@@ -18,18 +18,24 @@ This document explains _why_ the framework is shaped the way it is. It grows wit
 ## The DI seam: `base.fixtures.ts`
 
 Every spec imports `{ test, expect }` from `src/common/fixtures/base.fixtures.ts` — never from
-`@playwright/test`. Each concern is a standalone fixture module merged in:
+`@playwright/test`. Each concern is its own module, composed as a **chain** (each layer genuinely
+builds on the one before), and `base.fixtures.ts` re-exports the tail:
 
-| Module            | Provides                                                                     | Milestone |
-| ----------------- | ---------------------------------------------------------------------------- | --------- |
-| `logger.fixtures` | per-test pino child logger; buffered lines attached to the report on failure | M1        |
-| `api.fixtures`    | typed service clients over `APIRequestContext`                               | M2        |
-| `data.fixtures`   | faker factories + API-seeded data with automatic teardown                    | M2        |
-| `auth.fixtures`   | API login once → `storageState` injected into UI projects                    | M3        |
-| `pages.fixtures`  | lazily-instantiated page objects                                             | M4        |
+```
+logger.fixtures  ->  api.fixtures  ->  data.fixtures  ->  auth.fixtures  ->  pages.fixtures (M4)
+```
 
-Trade-off: merging fixtures adds one indirection layer vs. a plain `test.extend` per file. The payoff
-is that layers stay independently testable and a spec's dependencies are declared, not imported.
+| Module            | Provides                                                                       | Milestone |
+| ----------------- | ------------------------------------------------------------------------------ | --------- |
+| `logger.fixtures` | per-test pino child logger; buffered lines attached to the report on failure   | M1        |
+| `api.fixtures`    | worker-scoped mock backend + `api` = HttpClient + per-resource service clients | M2        |
+| `data.fixtures`   | `factory` (faker builders) + `seed` (API-created rows, deleted in teardown)    | M2        |
+| `auth.fixtures`   | `apiAuth` (login once per worker) + `authedRequest` (bearer-token context)     | M3        |
+| `pages.fixtures`  | lazily-instantiated page objects                                               | M4        |
+
+Trade-off: a chain vs. Playwright's `mergeTests`. `mergeTests` suits genuinely independent bundles;
+here the layers depend on each other (seeding needs the API services, auth needs the mock), so the
+chain reflects reality and keeps the dependency order explicit.
 
 ## Page Object Model vs. Screenplay _(expanded in M4)_
 
@@ -66,6 +72,38 @@ at a real server and no mock starts — every worker uses that shared server ins
 The `seed` fixture (`data.fixtures.ts`) creates rows through the API and deletes them in reverse
 order on teardown, so no test leaves state behind or depends on another test's data. UI-created
 data is never used as a fixture — seeding goes through the API for speed and determinism.
+
+## API → UI auth reuse
+
+Two independent "authenticate once" optimisations:
+
+**UI (implemented).** `tests/auth.setup.ts` is a Playwright `setup` project that every UI project
+declares as a `dependency`. It logs in through the SauceDemo UI a single time, saves
+`.auth/saucedemo.json`, and the UI projects load it via `use.storageState`. Every UI test then starts
+on a protected page already authenticated — `tests/e2e/session-reuse.spec.ts` proves it by navigating
+straight to `/inventory.html`. The login flow itself is still covered by `tests/ui/login.spec.ts`,
+which opts out with `test.use({ storageState: { cookies: [], origins: [] } })`.
+
+**API (implemented).** `auth.fixtures.ts` logs in once per worker via `AuthService` and shares the
+token across every test in that worker (`apiAuth`), plus an `authedRequest` context that carries
+`Authorization: Bearer <token>`.
+
+**Bridging the two for a real backend.** SauceDemo has no login API, so the UI storage state is
+produced through the UI. When the app under test _does_ expose a login endpoint, skip the browser
+entirely in `auth.setup.ts`:
+
+```ts
+const { token } = await new AuthService(http).login(user, pass);
+await request.storageState(); // or hand-build:
+const state = {
+  cookies: [{ name: 'session', value: token, domain: '.example.com', path: '/' /* ... */ }],
+  origins: [{ origin: config.urls.ui, localStorage: [{ name: 'auth_token', value: token }] }],
+};
+fs.writeFileSync(config.paths.authState, JSON.stringify(state));
+```
+
+The UI projects consume the file the same way regardless of how it was produced. **Do not** share
+auth state with tests that assert the login/logout flow, session expiry, or role switching.
 
 ## Retry philosophy _(expanded in M6)_
 

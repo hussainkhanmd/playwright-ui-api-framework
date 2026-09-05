@@ -44,6 +44,7 @@ export interface AppConfig {
   readonly mock: { port: number; autoStart: boolean; url: string };
   readonly timeouts: { default: number };
   readonly ai: { enabled: boolean; model: string; apiKey?: string };
+  readonly paths: { authState: string };
   readonly isCI: boolean;
 }
 
@@ -68,6 +69,7 @@ export const config: AppConfig = {
     model: env.AI_MODEL,
     apiKey: env.ANTHROPIC_API_KEY,
   },
+  paths: { authState: path.join(rootDir, '.auth', 'saucedemo.json') },
   isCI: env.CI,
 };
 

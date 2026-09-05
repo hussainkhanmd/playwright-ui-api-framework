@@ -1,0 +1,29 @@
+[
+  {
+    "name": "standard user logs in",
+    "username": "standard_user",
+    "password": "secret_sauce",
+    "outcome": "success"
+  },
+  {
+    "name": "locked-out user is rejected",
+    "username": "locked_out_user",
+    "password": "secret_sauce",
+    "outcome": "error",
+    "error": "Sorry, this user has been locked out."
+  },
+  {
+    "name": "wrong password is rejected",
+    "username": "standard_user",
+    "password": "wrong_password",
+    "outcome": "error",
+    "error": "Username and password do not match any user in this service"
+  },
+  {
+    "name": "empty username is rejected",
+    "username": "",
+    "password": "secret_sauce",
+    "outcome": "error",
+    "error": "Username is required"
+  }
+]

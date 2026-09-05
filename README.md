@@ -102,7 +102,7 @@ Secrets are never committed — `.env` is git-ignored; CI injects real values as
 | M0        | Repo bootstrap, lint/format/hooks, TS strict                                              | ✅    |
 | M1        | Config, fixtures, logging, `playwright.config` (incl. browser-less `api` project)         | ✅    |
 | M2        | API service layer + zod schema validation + per-worker mock + seed/teardown + data-driven | ✅    |
-| M3        | API→UI auth reuse (storageState)                                                          | ⏳    |
+| M3        | Auth reuse — UI `setup` project + storageState; per-worker API token (`apiAuth`)          | ✅    |
 | M4        | UI component/page objects + edge cases                                                    | ⏳    |
 | M5        | Accessibility + visual regression                                                         | ⏳    |
 | M6        | Allure reporting, retry hygiene, tagging                                                  | ⏳    |
