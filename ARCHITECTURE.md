@@ -22,16 +22,16 @@ Every spec imports `{ test, expect }` from `src/common/fixtures/base.fixtures.ts
 builds on the one before), and `base.fixtures.ts` re-exports the tail:
 
 ```
-logger.fixtures  ->  api.fixtures  ->  data.fixtures  ->  auth.fixtures  ->  pages.fixtures (M4)
+logger.fixtures  ->  api.fixtures  ->  data.fixtures  ->  auth.fixtures  ->  pages.fixtures
 ```
 
-| Module            | Provides                                                                       | Milestone |
-| ----------------- | ------------------------------------------------------------------------------ | --------- |
-| `logger.fixtures` | per-test pino child logger; buffered lines attached to the report on failure   | M1        |
-| `api.fixtures`    | worker-scoped mock backend + `api` = HttpClient + per-resource service clients | M2        |
-| `data.fixtures`   | `factory` (faker builders) + `seed` (API-created rows, deleted in teardown)    | M2        |
-| `auth.fixtures`   | `apiAuth` (login once per worker) + `authedRequest` (bearer-token context)     | M3        |
-| `pages.fixtures`  | lazily-instantiated page objects                                               | M4        |
+| Module            | Provides                                                                         |
+| ----------------- | -------------------------------------------------------------------------------- |
+| `logger.fixtures` | per-test pino child logger; buffered lines attached to the report on failure     |
+| `api.fixtures`    | worker-scoped mock backend + `api` = HttpClient + per-resource service clients   |
+| `data.fixtures`   | `factory` (faker builders) + `seed` (API-created rows, deleted in teardown)      |
+| `auth.fixtures`   | `apiAuth` (login once per worker) + `authedRequest` (bearer-token context)       |
+| `pages.fixtures`  | lazily-instantiated page objects (`loginPage`, `inventoryPage`, `theInternet.*`) |
 
 Trade-off: a chain vs. Playwright's `mergeTests`. `mergeTests` suits genuinely independent bundles;
 here the layers depend on each other (seeding needs the API services, auth needs the mock), so the
@@ -92,6 +92,25 @@ at a real server and no mock starts — every worker uses that shared server ins
 The `seed` fixture (`data.fixtures.ts`) creates rows through the API and deletes them in reverse
 order on teardown, so no test leaves state behind or depends on another test's data. UI-created
 data is never used as a fixture — seeding goes through the API for speed and determinism.
+
+## Contract testing (Pact)
+
+`tests/contract/posts.pact.spec.ts` is a **consumer-driven** contract test. It stands up an in-process
+Pact mock, drives it with the real `PostsService` (so the zod schema and the contract can't drift
+apart), and writes a pact file to `reports/pacts/`. Schema validation asserts _"this response parses"_;
+the contract asserts _"the provider promises this shape and these fields"_ and produces an artifact the
+provider can verify independently.
+
+Full CI/CD integration (not wired here, deliberately — it needs infrastructure):
+
+1. Consumer pipeline publishes the pact file to a **Pact Broker** (`pact-broker publish`), tagged with
+   the branch and version.
+2. Provider pipeline runs **provider verification** against the broker (`@pact-foundation/pact` verifier
+   or the CLI) using real provider states.
+3. **`can-i-deploy`** gates each side's release on the cross-matrix of verified pacts.
+
+The value even without a broker: the contract is executable documentation of exactly what this client
+depends on, checked on every run.
 
 ## API → UI auth reuse
 

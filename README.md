@@ -1,9 +1,8 @@
 # Playwright Framework — Unified UI + API Test Automation
 
 Production-grade test automation framework built on **Playwright + TypeScript (strict)**. One repo,
-one toolchain, for both **UI** and **API** testing.
-
-> Status: under active construction. See [the build plan](#build-status) for what is wired up so far.
+one toolchain, for both **UI** and **API** testing — layered architecture, dependency-injected
+fixtures, contract tests, sharded CI, Allure reporting, and an isolated experimental AI layer.
 
 <!-- Update OWNER/REPO once the GitHub remote exists. -->
 
@@ -47,35 +46,34 @@ npm test                       # full matrix
 | `npm run mock:start`                           | Long-running local json-server mock backend |
 | `npm run report:allure && npm run report:open` | Build + open the Allure report              |
 
-Add `--project=firefox|webkit|mobile-chrome|mobile-safari` to target a specific browser/viewport.
+`npx playwright test tests/contract` runs the Pact consumer test. Add
+`--project=firefox|webkit|mobile-chrome|mobile-safari` for a specific browser/viewport.
+Full tag/selection/reporting reference: [docs/TESTING.md](./docs/TESTING.md).
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-  spec["tests/** (specs, tagged @smoke/@regression/@api/@ui)"]
-  base["src/common/fixtures/base.fixtures.ts\n(single test export = DI seam)"]
-  subgraph fixtures[Fixtures]
-    logf[logger.fixtures]
-    apif[api.fixtures  · M2]
-    dataf[data.fixtures · M2]
-    authf[auth.fixtures · M3]
-    pagesf[pages.fixtures · M4]
+  spec["tests/** — ui · api · e2e · a11y · visual · contract · ai<br/>(tagged @smoke / @regression / @api / @ui / ...)"]
+  base["src/common/fixtures/base.fixtures.ts<br/>single { test, expect } export = the DI seam"]
+  subgraph fixtures["Fixture chain"]
+    direction LR
+    logf[logger] --> apif[api] --> dataf[data] --> authf[auth] --> pagesf[pages]
   end
-  subgraph layers[Framework layers]
-    api["src/api  · http-client + per-resource services + zod schemas"]
-    ui["src/ui  · component objects → page objects"]
-    common["src/common  · typed config (zod), logger"]
-    ai["src/ai  · EXPERIMENTAL, env-gated, isolated"]
+  subgraph layers["Framework layers"]
+    apilayer["src/api — http-client → services → zod schemas"]
+    uilayer["src/ui — component objects → page objects"]
+    common["src/common — typed config (zod), logger, utils"]
+    ailayer["src/ai — EXPERIMENTAL, env-gated, isolated"]
   end
-  backend["mocks/json-server (default API target)\nSauceDemo + the-internet (UI targets)"]
+  backend["mocks/json-server (per-worker, default API target)<br/>SauceDemo + the-internet (UI targets)"]
 
   spec --> base --> fixtures
-  apif --> api
-  pagesf --> ui
+  apif --> apilayer
+  pagesf --> uilayer
   fixtures --> common
-  api --> backend
-  ui --> backend
+  apilayer --> backend
+  uilayer --> backend
 ```
 
 Full rationale — POM vs. Screenplay, why Playwright's `request` context instead of a REST-assured-style
@@ -84,14 +82,17 @@ library, retry philosophy, the AI isolation boundary — lives in [ARCHITECTURE.
 ## Folder structure
 
 ```
-src/common/   typed config (zod, fail-fast), fixtures (DI), logger, shared utils
+src/common/   typed config (zod, fail-fast), fixtures (DI), logger, reporting, utils
 src/api/      http-client → per-resource services → zod response schemas → DTO types
-src/ui/       reusable component objects composed into page objects
+src/ui/       component objects → page objects (+ locator-strategy.md)
 src/ai/       experimental AI-augmented tooling (OFF unless AI_FEATURES_ENABLED=true)
-data/         static reference data, faker factories, data-driven JSON/CSV
+data/         static reference data + files, faker factories, data-driven JSON/CSV
 mocks/        local json-server mock backend (seeded, in-memory, offline)
-tests/        specs only — ui / api / e2e / a11y / visual / contract
+tests/        specs only — ui/ api/ e2e/ a11y/ visual/ contract/ ai/ + auth.setup.ts
 scripts/      global setup/teardown, env preflight
+docker/       Dockerfile (official Playwright image)   ci/  Jenkinsfile
+docs/         TESTING.md (tags, selection, reporting)
+.github/      workflows: ci · allure-publish · notify
 ```
 
 ## Configuration
@@ -142,20 +143,21 @@ The interesting part for an EM / Head of QA isn't the API calls — it's the **o
   trace-first debugging); layer AI on as an accelerant with hard boundaries; measure it on
   cycle-time, not novelty.
 
-## Build status
+## What's built
 
-| Milestone | Scope                                                                                                        | State |
-| --------- | ------------------------------------------------------------------------------------------------------------ | ----- |
-| M0        | Repo bootstrap, lint/format/hooks, TS strict                                                                 | ✅    |
-| M1        | Config, fixtures, logging, `playwright.config` (incl. browser-less `api` project)                            | ✅    |
-| M2        | API service layer + zod schema validation + per-worker mock + seed/teardown + data-driven                    | ✅    |
-| M3        | Auth reuse — UI `setup` project + storageState; per-worker API token (`apiAuth`)                             | ✅    |
-| M4        | UI component + page objects (POM), SauceDemo e2e, iframe/shadow-DOM/upload/download/multi-window             | ✅    |
-| M5        | Accessibility (axe-core + allowlist) + visual regression (committed baselines)                               | ✅    |
-| M6        | Allure 3 (Java-free) + custom slowest/flaky reporter + tag taxonomy ([docs/TESTING.md](./docs/TESTING.md))   | ✅    |
-| M7        | GitHub Actions (sharded matrix + merged report + Allure→Pages + notify) · Docker · GitLab/Jenkins refs       | ✅    |
-| M8        | Experimental AI layer — schema-bound data gen, suggest-only locator heal, story→draft scaffolder (env-gated) | ✅    |
-| M9        | Docs & portfolio polish                                                                                      | ⏳    |
+| Area                       | Highlights                                                                                                                                                                                            |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Foundation**             | ESM + TS strict, zod-validated fail-fast config, pino logging, ESLint/Prettier/Husky                                                                                                                  |
+| **Fixtures (DI)**          | One `test` export; chain: logger → api → data → auth → pages                                                                                                                                          |
+| **API**                    | `HttpClient` over `APIRequestContext`, per-resource services, zod response contracts, per-worker json-server isolation, `seed` fixture w/ auto-teardown, data-driven (JSON/CSV), live JSONPlaceholder |
+| **Auth reuse**             | UI `setup` project → `storageState`; per-worker API token (`apiAuth`) + bearer context                                                                                                                |
+| **UI**                     | Component objects → page objects (POM); SauceDemo e2e purchase flow; iframe, shadow DOM, file upload/download, multi-tab, multi-context                                                               |
+| **Quality**                | axe-core a11y with ratcheting allowlist; visual regression with committed baselines; Pact consumer contract test                                                                                      |
+| **Reporting**              | Allure 3 (no Java) + env/categories, Playwright HTML, custom slowest/flaky reporter, trace/video/log-on-failure                                                                                       |
+| **CI/CD**                  | GitHub Actions sharded matrix + merged report + Allure→Pages + Slack/Teams notify; Docker; GitLab/Jenkins reference pipelines                                                                         |
+| **AI (experimental, off)** | Schema-bound data gen, suggest-only locator heal, story→draft scaffolder — isolated & env-gated                                                                                                       |
+
+Design rationale and trade-offs: [ARCHITECTURE.md](./ARCHITECTURE.md) · Contributing: [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## License
 
