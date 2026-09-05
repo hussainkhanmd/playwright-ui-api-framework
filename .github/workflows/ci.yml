@@ -186,7 +186,9 @@ jobs:
           merge-multiple: true
 
       - name: Merge into one HTML report
-        run: npx playwright merge-reports --reporter html ./all-blob
+        # -c pins testDir so blobs from the standard runners and the Dockerized
+        # visual job (different workspace paths) can be merged together.
+        run: npx playwright merge-reports --reporter html -c playwright.merge.config.ts ./all-blob
         env:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
 

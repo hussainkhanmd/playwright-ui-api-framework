@@ -35,6 +35,7 @@
     "mocks/**/*.ts",
     "data/**/*.ts",
     "playwright.config.ts",
+    "playwright.merge.config.ts",
     "eslint.config.mjs"
   ],
   "exclude": ["node_modules", "reports", "test-results", "dist"]
