@@ -35,7 +35,14 @@ export default defineConfig({
   retries: config.env.RETRIES ?? (config.isCI ? 2 : 0),
   workers: config.env.WORKERS ?? undefined,
   timeout: config.timeouts.default,
-  expect: { timeout: 10_000 },
+  expect: {
+    timeout: 10_000,
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+      scale: 'css',
+    },
+  },
 
   reporter: [
     config.isCI ? ['blob'] : ['list'],

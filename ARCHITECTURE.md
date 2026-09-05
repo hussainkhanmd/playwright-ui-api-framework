@@ -125,7 +125,25 @@ fs.writeFileSync(config.paths.authState, JSON.stringify(state));
 The UI projects consume the file the same way regardless of how it was produced. **Do not** share
 auth state with tests that assert the login/logout flow, session expiry, or role switching.
 
-## Retry philosophy _(expanded in M6)_
+## Accessibility testing
+
+`scanA11y()` (`src/common/utils/a11y.ts`) runs axe-core (WCAG 2.0/2.1 A + AA) against a page,
+**always attaches the full violation list** to the report, and returns violations minus a documented
+`allow` list of pre-existing rule ids. Real teams ratchet accessibility debt down rather than
+blocking CI on day one — the allowlist keeps that explicit and code-reviewed (each entry carries a
+ticket reference), while still failing on any _new_ regression. SauceDemo's login page is clean; the
+inventory page has one tracked issue (`select-name` on the sort dropdown).
+
+## Visual testing
+
+Playwright's built-in `toHaveScreenshot`. Tolerances live in `playwright.config.ts`
+(`maxDiffPixelRatio: 0.02`, animations disabled). Dynamic regions are `mask`ed so copy/date changes
+don't cause false diffs. Baselines are **committed** and platform-suffixed
+(`login-chromium-darwin.png`); regenerate locally with `npm run test:visual:update`. CI runs inside
+the official Playwright Docker image so its Linux baselines (`-chromium-linux.png`) are byte-stable —
+never trust a screenshot baseline generated on a different OS/font stack than the one comparing it.
+
+## Retry philosophy
 
 `retries = CI ? 2 : 0`. Locally, a flaky test fails so its flaky design is visible. In CI, retries
 absorb genuine infrastructure noise. `trace: 'on-first-retry'` means the first retry is always

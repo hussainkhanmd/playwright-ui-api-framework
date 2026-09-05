@@ -104,7 +104,7 @@ Secrets are never committed — `.env` is git-ignored; CI injects real values as
 | M2        | API service layer + zod schema validation + per-worker mock + seed/teardown + data-driven        | ✅    |
 | M3        | Auth reuse — UI `setup` project + storageState; per-worker API token (`apiAuth`)                 | ✅    |
 | M4        | UI component + page objects (POM), SauceDemo e2e, iframe/shadow-DOM/upload/download/multi-window | ✅    |
-| M5        | Accessibility + visual regression                                                                | ⏳    |
+| M5        | Accessibility (axe-core + allowlist) + visual regression (committed baselines)                   | ✅    |
 | M6        | Allure reporting, retry hygiene, tagging                                                         | ⏳    |
 | M7        | GitHub Actions (sharding) + Docker + secondary CI                                                | ⏳    |
 | M8        | Experimental AI-augmented layer                                                                  | ⏳    |
