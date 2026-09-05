@@ -2,8 +2,7 @@ import { test as setup, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { config } from '@common/config/config.js';
-
-const STORAGE_STATE = config.paths.authState;
+import { LoginPage } from '@ui/pages/login.page.js';
 
 /**
  * Authentication setup — runs **once** before the UI projects (declared as their
@@ -16,15 +15,15 @@ const STORAGE_STATE = config.paths.authState;
  *
  * For an app whose backend exposes a login API, replace the UI steps below with
  * an `AuthService` call and write the returned token into `storageState`
- * (cookie or localStorage) directly — see ARCHITECTURE.md "API → UI auth reuse".
+ * directly — see ARCHITECTURE.md "API → UI auth reuse".
  */
+const STORAGE_STATE = config.paths.authState;
+
 setup('authenticate', async ({ page }) => {
   await mkdir(path.dirname(STORAGE_STATE), { recursive: true });
 
-  await page.goto('/');
-  await page.getByPlaceholder('Username').fill(config.credentials.username);
-  await page.getByPlaceholder('Password').fill(config.credentials.password);
-  await page.getByRole('button', { name: 'Login' }).click();
+  const loginPage = new LoginPage(page);
+  await loginPage.login(config.credentials.username, config.credentials.password);
 
   await expect(page).toHaveURL(/inventory\.html/);
   await expect(page.locator('.title')).toHaveText('Products');

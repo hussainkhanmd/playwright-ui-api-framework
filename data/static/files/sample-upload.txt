@@ -1,0 +1,2 @@
+Sample file used by tests/ui/edge/file-transfer.spec.ts to exercise
+Playwright's setInputFiles upload handling against the-internet /upload.

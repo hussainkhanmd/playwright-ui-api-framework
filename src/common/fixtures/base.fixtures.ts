@@ -1,4 +1,4 @@
-import { test as authTest } from './auth.fixtures.js';
+import { test as pagesTest } from './pages.fixtures.js';
 
 /**
  * The single `test` object every spec imports.
@@ -11,10 +11,10 @@ import { test as authTest } from './auth.fixtures.js';
  *
  * Fixtures compose as a chain (each layer genuinely builds on the one before):
  *
- *   logger  ->  api  ->  data  ->  auth  ->  pages (M4)
+ *   logger  ->  api  ->  data  ->  auth  ->  pages
  *
  * `base.fixtures` always re-exports the tail of that chain.
  */
-export const test = authTest;
+export const test = pagesTest;
 
 export { expect } from '@playwright/test';

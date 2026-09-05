@@ -37,12 +37,32 @@ Trade-off: a chain vs. Playwright's `mergeTests`. `mergeTests` suits genuinely i
 here the layers depend on each other (seeding needs the API services, auth needs the mock), so the
 chain reflects reality and keeps the dependency order explicit.
 
-## Page Object Model vs. Screenplay _(expanded in M4)_
+## Page Object Model vs. Screenplay
 
-The framework ships **POM enhanced with component objects**: small reusable UI components
-(`Header`, `LoginForm`, `ProductCard`) composed into page objects. Plain POM tends toward giant page
-classes; Screenplay (actors, tasks, questions) is more scalable but heavier to learn and read.
-POM-with-components is the pragmatic middle. A documented migration path to Screenplay will live here.
+The framework ships **POM enhanced with component objects**.
+
+- **Component objects** (`src/ui/components/`) — small reusable pieces of UI scoped to a root locator
+  (`Header`, `LoginForm`, `ProductCard`, `InventoryList`). They extend `BaseComponent` and resolve
+  children from `this.root`, so several instances on one page never clash.
+- **Page objects** (`src/ui/pages/`) — extend `BasePage`, set a `path`, and _compose_ components.
+  They expose state and actions; they never assert (specs assert).
+- Injected lazily by `pages.fixtures.ts`: a spec asks for `{ inventoryPage }` and gets a ready object.
+
+| Pattern                                 | Strength                                                              | Cost                                                            | Verdict                                                             |
+| --------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Plain POM                               | familiar, quick to start                                              | pages balloon into 300-line god-classes                         | too coarse                                                          |
+| **POM + components**                    | reuse across pages, small classes, easy onboarding                    | one extra layer to learn                                        | **default**                                                         |
+| Screenplay (actors / tasks / questions) | composable behaviour, reads like a user story, scales to large suites | steeper learning curve, more ceremony, unfamiliar to many teams | reach for it when the suite is large and shared across many authors |
+
+### Migration path to Screenplay
+
+The component/page objects are already the "abilities" layer, so the move is additive, not a rewrite:
+
+1. Introduce an `Actor` holding abilities (`BrowseTheWeb(page)`, `CallAnApi(request)`).
+2. Wrap existing page-object actions as **Tasks** (`Login.withCredentials(u, p)` calls `LoginPage`).
+3. Wrap read methods as **Questions** (`TheInventory.itemCount()` calls `InventoryList.count()`).
+4. Swap the `pages` fixture for an `actor` fixture; migrate specs file-by-file — both styles can
+   coexist during the transition because they share the same page objects underneath.
 
 ## Why Playwright's `request` context, not a REST-assured-style library
 
