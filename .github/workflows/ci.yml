@@ -1,0 +1,168 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 20
+  SHARD_TOTAL: 2
+
+jobs:
+  quality:
+    name: Lint · typecheck · format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+
+  api-tests:
+    name: API tests (no browser)
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx playwright test --project=api
+        env:
+          CI: 'true'
+          TEST_ENV: dev
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-api
+          path: blob-report/
+          retention-days: 7
+      - name: Upload Allure results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-api
+          path: reports/allure-results/
+          retention-days: 7
+
+  ui-tests:
+    name: UI · ${{ matrix.project }} · shard ${{ matrix.shard }}
+    needs: quality
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit]
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ matrix.project }}-${{ hashFiles('package-lock.json') }}
+
+      - run: npx playwright install --with-deps ${{ matrix.project }}
+
+      - name: Run tests
+        run: npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}/${{ env.SHARD_TOTAL }}
+        env:
+          CI: 'true'
+          TEST_ENV: dev
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-${{ matrix.project }}-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 7
+
+      - name: Upload Allure results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ matrix.project }}-${{ matrix.shard }}
+          path: reports/allure-results/
+          retention-days: 7
+
+      - name: Upload traces & videos on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-${{ matrix.project }}-${{ matrix.shard }}
+          path: reports/test-results/
+          retention-days: 7
+
+  merge-report:
+    name: Merge HTML report
+    if: ${{ !cancelled() }}
+    needs: [api-tests, ui-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Download blob reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-*
+          path: all-blob
+          merge-multiple: true
+
+      - name: Merge into one HTML report
+        run: npx playwright merge-reports --reporter html ./all-blob
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: html-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Collate Allure results for the publish workflow
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          path: allure-results
+          merge-multiple: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results/
+          retention-days: 7
+
+  notify:
+    name: Notify on failure
+    if: ${{ failure() && github.ref == 'refs/heads/main' }}
+    needs: [api-tests, ui-tests, merge-report]
+    uses: ./.github/workflows/notify.yml
+    secrets: inherit
+    with:
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

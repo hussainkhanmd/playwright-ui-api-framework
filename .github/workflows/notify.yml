@@ -1,0 +1,33 @@
+name: Notify
+
+# Reusable workflow: posts a failure message to Slack and/or Teams.
+# Wire real endpoints via repo secrets SLACK_WEBHOOK_URL / TEAMS_WEBHOOK_URL.
+# Each step no-ops silently when its secret is absent.
+
+on:
+  workflow_call:
+    inputs:
+      run_url:
+        required: true
+        type: string
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+    steps:
+      - name: Slack
+        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\":red_circle: *${{ github.repository }}* CI failed on \`${{ github.ref_name }}\` — <${{ inputs.run_url }}|view run>\"}" \
+            "$SLACK_WEBHOOK_URL"
+
+      - name: Microsoft Teams
+        if: ${{ env.TEAMS_WEBHOOK_URL != '' }}
+        run: |
+          curl -sS -X POST -H 'Content-Type: application/json' \
+            --data "{\"text\":\"CI failed: ${{ github.repository }} @ ${{ github.ref_name }} — ${{ inputs.run_url }}\"}" \
+            "$TEAMS_WEBHOOK_URL"

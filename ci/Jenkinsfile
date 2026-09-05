@@ -1,0 +1,64 @@
+// Jenkins declarative pipeline reference (parallel to .github/workflows/ci.yml).
+// Runs inside the official Playwright container so browsers are preinstalled.
+
+pipeline {
+  agent {
+    docker {
+      image 'mcr.microsoft.com/playwright:v1.63.0-noble'
+      args '--ipc=host'
+    }
+  }
+
+  environment {
+    CI = 'true'
+    TEST_ENV = 'dev'
+  }
+
+  options {
+    timeout(time: 30, unit: 'MINUTES')
+    disableConcurrentBuilds()
+  }
+
+  stages {
+    stage('Install') {
+      steps { sh 'npm ci' }
+    }
+
+    stage('Quality') {
+      steps {
+        sh 'npm run lint'
+        sh 'npm run typecheck'
+        sh 'npm run format:check'
+      }
+    }
+
+    stage('Tests') {
+      parallel {
+        stage('API')      { steps { sh 'npx playwright test --project=api' } }
+        stage('Chromium') { steps { sh 'npx playwright test --project=chromium' } }
+        stage('Firefox')  { steps { sh 'npx playwright test --project=firefox' } }
+        stage('WebKit')   { steps { sh 'npx playwright test --project=webkit' } }
+      }
+    }
+
+    stage('Report') {
+      steps { sh 'npm run report:allure' }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'reports/**, playwright-report/**', allowEmptyArchive: true
+      publishHTML(target: [reportDir: 'reports/allure-report', reportFiles: 'index.html', reportName: 'Allure Report'])
+    }
+    failure {
+      script {
+        if (env.SLACK_WEBHOOK_URL?.trim()) {
+          sh """curl -sS -X POST -H 'Content-type: application/json' \
+            --data '{"text":"Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} failed — ${env.BUILD_URL}"}' \
+            "\$SLACK_WEBHOOK_URL" """
+        }
+      }
+    }
+  }
+}

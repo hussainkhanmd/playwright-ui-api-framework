@@ -27,7 +27,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['eslint.config.mjs', '.prettierrc.json'],
+          allowDefaultProject: ['eslint.config.mjs', 'allurerc.mjs', '.prettierrc.json'],
         },
         tsconfigRootDir: import.meta.dirname,
       },

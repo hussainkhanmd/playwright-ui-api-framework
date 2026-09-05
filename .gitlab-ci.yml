@@ -1,0 +1,59 @@
+# GitLab CI reference implementation (parallel to .github/workflows/ci.yml).
+# Uses the official Playwright image so no browser install step is needed.
+
+stages: [quality, test, report]
+
+default:
+  image: mcr.microsoft.com/playwright:v1.63.0-noble
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [.npm/]
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+
+variables:
+  CI: 'true'
+  TEST_ENV: dev
+
+quality:
+  stage: quality
+  script:
+    - npm run lint
+    - npm run typecheck
+    - npm run format:check
+
+api-tests:
+  stage: test
+  needs: [quality]
+  script:
+    - npx playwright test --project=api
+  artifacts:
+    when: always
+    paths: [blob-report/, reports/allure-results/]
+    expire_in: 1 week
+
+ui-tests:
+  stage: test
+  needs: [quality]
+  parallel:
+    matrix:
+      - PROJECT: [chromium, firefox, webkit]
+        SHARD: ['1', '2']
+  script:
+    - npx playwright test --project=$PROJECT --shard=$SHARD/2
+  artifacts:
+    when: always
+    paths: [blob-report/, reports/allure-results/, reports/test-results/]
+    expire_in: 1 week
+
+merge-report:
+  stage: report
+  needs: [api-tests, ui-tests]
+  when: always
+  script:
+    - npx playwright merge-reports --reporter html ./blob-report || true
+    - npm run report:allure
+  artifacts:
+    paths: [playwright-report/, reports/allure-report/]
+    expire_in: 1 month

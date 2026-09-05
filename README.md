@@ -5,8 +5,13 @@ one toolchain, for both **UI** and **API** testing.
 
 > Status: under active construction. See [the build plan](#build-status) for what is wired up so far.
 
-<!-- badges: filled in during M7 -->
-<!-- ![CI](...) ![Allure Report](...) ![License: MIT](...) ![Node](...) -->
+<!-- Update OWNER/REPO once the GitHub remote exists. -->
+
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![Allure Report](https://img.shields.io/badge/Allure-report-brightgreen)](https://OWNER.github.io/REPO/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+![Node](https://img.shields.io/badge/node-20_LTS-339933?logo=node.js&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-1.63-2EAD33?logo=playwright&logoColor=white)
 
 ---
 
@@ -95,6 +100,19 @@ All config flows through `src/common/config/config.ts`: `.env` → **zod validat
 per-environment URL resolution (`TEST_ENV=dev|staging|prod`). Nothing else reads `process.env`.
 Secrets are never committed — `.env` is git-ignored; CI injects real values as secrets.
 
+## CI/CD
+
+| File                                   | Purpose                                                                                                                                                                                                                                              |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/workflows/ci.yml`             | Lint/typecheck → sharded matrix (`chromium`/`firefox`/`webkit` × 2 shards) + browser-less `api` job. Caches npm + Playwright browsers; uploads blob reports, Allure results, and traces/videos on failure; merges blob reports into one HTML report. |
+| `.github/workflows/allure-publish.yml` | On `CI` completing on `main`: builds the Allure report (trend history via `actions/cache`) and deploys it to **GitHub Pages**.                                                                                                                       |
+| `.github/workflows/notify.yml`         | Reusable — posts to Slack/Teams on `main` failure (no-op without the webhook secret).                                                                                                                                                                |
+| `docker/Dockerfile`                    | Official Playwright image (`v1.63.0-noble`) for reproducible local/CI runs: `docker build -f docker/Dockerfile -t pwf . && docker run --rm pwf npm run test:api`.                                                                                    |
+| `.gitlab-ci.yml`, `ci/Jenkinsfile`     | Reference ports of the same pipeline for cross-platform CI.                                                                                                                                                                                          |
+
+**Repo setup after cloning:** add the GitHub remote, enable Pages (Settings → Pages → _GitHub Actions_),
+and optionally add `SLACK_WEBHOOK_URL` / `TEAMS_WEBHOOK_URL` secrets. Replace `OWNER/REPO` in the badges.
+
 ## Build status
 
 | Milestone | Scope                                                                                                      | State |
@@ -106,7 +124,7 @@ Secrets are never committed — `.env` is git-ignored; CI injects real values as
 | M4        | UI component + page objects (POM), SauceDemo e2e, iframe/shadow-DOM/upload/download/multi-window           | ✅    |
 | M5        | Accessibility (axe-core + allowlist) + visual regression (committed baselines)                             | ✅    |
 | M6        | Allure 3 (Java-free) + custom slowest/flaky reporter + tag taxonomy ([docs/TESTING.md](./docs/TESTING.md)) | ✅    |
-| M7        | GitHub Actions (sharding) + Docker + secondary CI                                                          | ⏳    |
+| M7        | GitHub Actions (sharded matrix + merged report + Allure→Pages + notify) · Docker · GitLab/Jenkins refs     | ✅    |
 | M8        | Experimental AI-augmented layer                                                                            | ⏳    |
 | M9        | Docs & portfolio polish                                                                                    | ⏳    |
 

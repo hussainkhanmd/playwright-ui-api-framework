@@ -1,0 +1,15 @@
+node_modules
+reports
+test-results
+playwright-report
+blob-report
+allure-results
+allure-report
+.auth
+logs
+.git
+.github
+*.log
+.env
+.env.*
+!.env.example

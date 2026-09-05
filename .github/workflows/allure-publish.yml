@@ -1,0 +1,62 @@
+name: Publish Allure report
+
+# Runs after CI completes on main; builds the Allure report from the collated
+# results artifact and deploys it to GitHub Pages. Trend history is kept in an
+# actions cache between runs.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: allure-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion != 'cancelled' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Download Allure results from the CI run
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results
+          path: reports/allure-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore Allure history
+        uses: actions/cache@v4
+        with:
+          path: reports/allure-history.jsonl
+          key: allure-history-${{ github.run_id }}
+          restore-keys: allure-history-
+
+      - name: Generate report
+        run: npm run report:allure
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/allure-report
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
