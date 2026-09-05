@@ -1,0 +1,11 @@
+node_modules/
+reports/
+test-results/
+playwright-report/
+blob-report/
+allure-results/
+allure-report/
+logs/
+dist/
+package-lock.json
+tests/visual/**/*-snapshots/

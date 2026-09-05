@@ -1,0 +1,80 @@
+{
+  "name": "playwright-framework",
+  "version": "0.1.0",
+  "description": "Production-grade Playwright + TypeScript framework for unified UI and API test automation.",
+  "type": "module",
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --project=chromium tests/ui",
+    "test:api": "playwright test --project=api",
+    "test:e2e": "playwright test --project=chromium tests/e2e",
+    "test:a11y": "playwright test --project=chromium tests/a11y",
+    "test:visual": "playwright test --project=chromium tests/visual",
+    "test:visual:update": "playwright test --project=chromium tests/visual --update-snapshots",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "mock:start": "tsx mocks/json-server/server.ts",
+    "report:allure": "allure generate reports/allure-results --clean -o reports/allure-report",
+    "report:open": "allure open reports/allure-report",
+    "report:html": "playwright show-report reports/html-report",
+    "check:env": "tsx scripts/check-env.ts",
+    "ai:scaffold": "tsx src/ai/scaffold-test.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "test-automation",
+    "api-testing",
+    "ui-testing",
+    "page-object-model"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "9.39.5",
+    "@faker-js/faker": "10.6.0",
+    "@pact-foundation/pact": "16.5.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "20.19.9",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "allure-commandline": "2.43.0",
+    "allure-playwright": "3.12.0",
+    "csv-parse": "7.0.2",
+    "dotenv": "17.4.2",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-playwright": "2.11.0",
+    "husky": "9.1.7",
+    "json-server": "0.17.4",
+    "lint-staged": "15.5.2",
+    "prettier": "3.9.6",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.69.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.124.0",
+    "pino": "10.3.1",
+    "pino-pretty": "13.1.3",
+    "zod": "4.5.4"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}

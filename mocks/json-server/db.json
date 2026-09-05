@@ -1,0 +1,52 @@
+{
+  "posts": [
+    {
+      "id": 1,
+      "userId": 1,
+      "title": "First seeded post",
+      "body": "Seed data for deterministic API tests."
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "title": "Second seeded post",
+      "body": "This row is safe to read but not mutate in tests."
+    },
+    { "id": 3, "userId": 2, "title": "Third seeded post", "body": "Another stable fixture row." }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "name": "Ada Lovelace",
+      "username": "ada",
+      "email": "ada@example.com",
+      "phone": "1-770-736-8031",
+      "website": "example.com"
+    },
+    {
+      "id": 2,
+      "name": "Alan Turing",
+      "username": "alan",
+      "email": "alan@example.com",
+      "phone": "010-692-6593",
+      "website": "example.org"
+    }
+  ],
+  "comments": [
+    {
+      "id": 1,
+      "postId": 1,
+      "name": "seed comment",
+      "email": "c1@example.com",
+      "body": "stable comment row"
+    }
+  ],
+  "auth": [
+    {
+      "id": 1,
+      "username": "standard_user",
+      "password": "secret_sauce",
+      "token": "mock-static-token-standard-user"
+    }
+  ]
+}

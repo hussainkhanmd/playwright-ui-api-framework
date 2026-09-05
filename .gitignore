@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Playwright / test output
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+.auth/
+storageState*.json
+
+# Reports
+reports/
+allure-results/
+allure-report/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp
+
+# Build
+dist/
