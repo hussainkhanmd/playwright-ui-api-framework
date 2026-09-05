@@ -157,10 +157,16 @@ inventory page has one tracked issue (`select-name` on the sort dropdown).
 
 Playwright's built-in `toHaveScreenshot`. Tolerances live in `playwright.config.ts`
 (`maxDiffPixelRatio: 0.02`, animations disabled). Dynamic regions are `mask`ed so copy/date changes
-don't cause false diffs. Baselines are **committed** and platform-suffixed
-(`login-chromium-darwin.png`); regenerate locally with `npm run test:visual:update`. CI runs inside
-the official Playwright Docker image so its Linux baselines (`-chromium-linux.png`) are byte-stable —
-never trust a screenshot baseline generated on a different OS/font stack than the one comparing it.
+don't cause false diffs. Runs as a dedicated **chromium-only** `visual` project — cross-browser
+pixel diffing multiplies byte-fragile baselines for little signal.
+
+Baselines are **committed** and platform-suffixed (`login-visual-darwin.png` for local macOS runs,
+`login-visual-linux.png` for CI). The `visual-tests` CI job runs inside the pinned Playwright image
+(`mcr.microsoft.com/playwright:v1.63.0-noble`) so its Linux baselines are byte-stable against the
+runner's font stack — never trust a screenshot baseline generated on a different OS/font stack than
+the one comparing it. Regenerate locally with `npm run test:visual:update`; regenerate the Linux
+baselines by running the **Update visual baselines** workflow (`workflow_dispatch`), which updates
+them in that same image and commits them back.
 
 ## Reporting
 

@@ -1,0 +1,45 @@
+name: Update visual baselines
+
+# Manually-triggered helper: regenerates the committed `-chromium-linux.png`
+# screenshot baselines inside the pinned Playwright image (the same environment
+# CI compares against) and commits them back to the triggering branch.
+#
+# Run this after an intentional UI change that alters a masked-and-tolerant
+# screenshot. Review the resulting diff in the commit before merging.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Regenerate visual baselines
+        run: npx playwright test --project=visual --update-snapshots
+        env:
+          CI: 'true'
+          TEST_ENV: dev
+
+      - name: Commit updated baselines
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- 'tests/visual/**'; then
+            echo "No baseline changes."
+            exit 0
+          fi
+          git add 'tests/visual/**'
+          git commit -m "test(visual): refresh Linux screenshot baselines [skip ci]"
+          git push

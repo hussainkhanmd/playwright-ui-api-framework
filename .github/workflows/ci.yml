@@ -117,13 +117,58 @@ jobs:
           path: reports/test-results/
           retention-days: 7
 
+  visual-tests:
+    name: Visual regression (Linux baselines)
+    needs: quality
+    runs-on: ubuntu-latest
+    # Pinned Playwright image: browsers + OS font stack match the committed
+    # `-chromium-linux.png` baselines byte-for-byte. Never compare a screenshot
+    # against a baseline built on a different OS/font stack.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx playwright test --project=visual
+        env:
+          CI: 'true'
+          TEST_ENV: dev
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-visual
+          path: blob-report/
+          retention-days: 7
+
+      - name: Upload Allure results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-visual
+          path: reports/allure-results/
+          retention-days: 7
+
+      - name: Upload diffs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-visual
+          path: reports/test-results/
+          retention-days: 7
+
   merge-report:
     name: Merge HTML report
     # Run whenever the test jobs actually executed (pass or fail), but skip the
     # cascade when they were skipped because `quality` failed — there are no
     # blob reports to merge in that case.
-    if: ${{ always() && needs.api-tests.result != 'skipped' && needs.ui-tests.result != 'skipped' }}
-    needs: [api-tests, ui-tests]
+    if: ${{ always() && needs.api-tests.result != 'skipped' && needs.ui-tests.result != 'skipped' && needs.visual-tests.result != 'skipped' }}
+    needs: [api-tests, ui-tests, visual-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -167,7 +212,7 @@ jobs:
   notify:
     name: Notify on failure
     if: ${{ failure() && github.ref == 'refs/heads/main' }}
-    needs: [api-tests, ui-tests, merge-report]
+    needs: [api-tests, ui-tests, visual-tests, merge-report]
     uses: ./.github/workflows/notify.yml
     secrets: inherit
     with:

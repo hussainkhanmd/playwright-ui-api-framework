@@ -19,8 +19,13 @@ import { config } from './src/common/config/config.js';
  *     opts out to cover the login flow itself.
  */
 
-const UI_DIRS = ['ui', 'e2e', 'a11y', 'visual'];
+const UI_DIRS = ['ui', 'e2e', 'a11y'];
 const uiTestMatch = new RegExp(`tests/(${UI_DIRS.join('|')})/.*\\.spec\\.ts`);
+
+// Visual regression is chromium-only and pinned to Linux baselines produced in
+// the official Playwright Docker image (see .github/workflows/ci.yml). Running
+// it across firefox/webkit would just multiply byte-fragile baselines.
+const visualTestMatch = /tests\/visual\/.*\.spec\.ts/;
 
 const uiUse = {
   baseURL: config.urls.ui,
@@ -99,6 +104,12 @@ export default defineConfig({
       name: 'setup',
       testMatch: /tests\/.*\.setup\.ts/,
       use: { baseURL: config.urls.ui },
+    },
+    {
+      name: 'visual',
+      testMatch: visualTestMatch,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], ...uiUse },
     },
     {
       name: 'chromium',
