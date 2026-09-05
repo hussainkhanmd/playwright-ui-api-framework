@@ -169,8 +169,23 @@ that races a network response (fix: web-first assertion, not a bare `expect(awai
 timing (fix: `animations: 'disabled'`). Genuine environment flake looks like connection resets or
 cold-start timeouts spread randomly across unrelated tests — that's what the CI retries are for.
 
-## AI layer isolation boundary _(expanded in M8)_
+## AI layer isolation boundary
 
-Everything under `src/ai/` is inert unless `AI_FEATURES_ENABLED=true`. Core fixtures never import it.
-The locator "self-heal" is **suggest-only** — it logs a proposed selector, never rewrites one at
-runtime. This keeps the experimental surface from adding flakiness to normal runs.
+Everything under `src/ai/` is inert unless `AI_FEATURES_ENABLED=true` **and** `ANTHROPIC_API_KEY` is
+set; calling in without both throws (`assertAiEnabled()`), it never silently no-ops. Core modules
+(fixtures, page objects, services, config) never import `src/ai/*` — verified by
+`tests/ai/ai-layer.spec.ts`, so the default suite has no AI import cost, no network, no key
+requirement, and CI is byte-identical with or without a key present.
+
+Guardrails per tool:
+
+- **`test-data-generator`** — the model's output is parsed through the caller's zod schema before it
+  is returned; a hallucinated shape fails there and never reaches a test. Disabled → throws, pointing
+  at `data/factories/`.
+- **`locator-healer`** — suggest-only. It logs and attaches candidate selectors to the report; it
+  never rewrites a locator and is never wired into a retry path. A self-healing selector that
+  silently changes what a test asserts hides regressions — a red test is the correct outcome.
+- **`scaffold-test`** — writes a `*.draft.spec.ts` with a review banner; a human finishes and commits.
+
+Model id comes from `AI_MODEL` (default `claude-sonnet-5` — a bulk-generation/worker role; raise to
+`claude-opus-5` for harder scaffolding).

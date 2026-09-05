@@ -92,7 +92,7 @@ export default defineConfig({
   projects: [
     {
       name: 'api',
-      testMatch: /tests\/(api|contract)\/.*\.spec\.ts/,
+      testMatch: /tests\/(api|contract|ai)\/.*\.spec\.ts/,
       use: { baseURL: config.urls.api },
     },
     {

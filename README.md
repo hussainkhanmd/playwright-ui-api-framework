@@ -113,20 +113,49 @@ Secrets are never committed — `.env` is git-ignored; CI injects real values as
 **Repo setup after cloning:** add the GitHub remote, enable Pages (Settings → Pages → _GitHub Actions_),
 and optionally add `SLACK_WEBHOOK_URL` / `TEAMS_WEBHOOK_URL` secrets. Replace `OWNER/REPO` in the badges.
 
+## AI-augmented layer (experimental, off by default)
+
+`src/ai/` is an **isolated, env-gated** experiment — nothing in the core framework imports it, and the
+default suite has zero AI dependency. Enable with `AI_FEATURES_ENABLED=true` + `ANTHROPIC_API_KEY`.
+
+| Tool                              | Command / entry                                              | Guardrail                                                                                    |
+| --------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Schema-bound test-data generation | `generateData(zodSchema, { description })`                   | Output is parsed through the zod schema; disabled → points you at `data/factories/`          |
+| Locator self-heal                 | `suggestLocators(page, brokenSelector, intent)`              | **Suggest-only** — logs + attaches to the report, never rewrites a locator, never runs in CI |
+| Story → draft spec                | `npm run ai:scaffold -- --story data/static/sample-story.md` | Writes a `.draft.spec.ts` with a TODO banner; a human finishes and commits it                |
+
+See [src/ai/README.md](./src/ai/README.md) for the full risk boundary.
+
+### How this maps to AI-augmented test engineering leadership
+
+The interesting part for an EM / Head of QA isn't the API calls — it's the **operating model**:
+
+- **Determinism stays sacred.** AI lives behind a flag, outside the hot path, so the regression suite
+  a team relies on is byte-identical with or without it. That's the difference between "we use AI" and
+  "our suite got flaky."
+- **Schemas and page objects are the contract the AI works against.** A generator that must satisfy a
+  zod schema, a scaffolder that must use existing fixtures — the framework's structure is what makes
+  AI output _reviewable_ instead of a liability.
+- **Human-in-the-loop by construction.** Suggest-only healing and draft-only scaffolding keep a person
+  accountable for what lands in `main`. AI compresses the boring 80%; it doesn't sign off.
+- **The leadership pitch:** invest in the deterministic core first (typed config, DI, contracts,
+  trace-first debugging); layer AI on as an accelerant with hard boundaries; measure it on
+  cycle-time, not novelty.
+
 ## Build status
 
-| Milestone | Scope                                                                                                      | State |
-| --------- | ---------------------------------------------------------------------------------------------------------- | ----- |
-| M0        | Repo bootstrap, lint/format/hooks, TS strict                                                               | ✅    |
-| M1        | Config, fixtures, logging, `playwright.config` (incl. browser-less `api` project)                          | ✅    |
-| M2        | API service layer + zod schema validation + per-worker mock + seed/teardown + data-driven                  | ✅    |
-| M3        | Auth reuse — UI `setup` project + storageState; per-worker API token (`apiAuth`)                           | ✅    |
-| M4        | UI component + page objects (POM), SauceDemo e2e, iframe/shadow-DOM/upload/download/multi-window           | ✅    |
-| M5        | Accessibility (axe-core + allowlist) + visual regression (committed baselines)                             | ✅    |
-| M6        | Allure 3 (Java-free) + custom slowest/flaky reporter + tag taxonomy ([docs/TESTING.md](./docs/TESTING.md)) | ✅    |
-| M7        | GitHub Actions (sharded matrix + merged report + Allure→Pages + notify) · Docker · GitLab/Jenkins refs     | ✅    |
-| M8        | Experimental AI-augmented layer                                                                            | ⏳    |
-| M9        | Docs & portfolio polish                                                                                    | ⏳    |
+| Milestone | Scope                                                                                                        | State |
+| --------- | ------------------------------------------------------------------------------------------------------------ | ----- |
+| M0        | Repo bootstrap, lint/format/hooks, TS strict                                                                 | ✅    |
+| M1        | Config, fixtures, logging, `playwright.config` (incl. browser-less `api` project)                            | ✅    |
+| M2        | API service layer + zod schema validation + per-worker mock + seed/teardown + data-driven                    | ✅    |
+| M3        | Auth reuse — UI `setup` project + storageState; per-worker API token (`apiAuth`)                             | ✅    |
+| M4        | UI component + page objects (POM), SauceDemo e2e, iframe/shadow-DOM/upload/download/multi-window             | ✅    |
+| M5        | Accessibility (axe-core + allowlist) + visual regression (committed baselines)                               | ✅    |
+| M6        | Allure 3 (Java-free) + custom slowest/flaky reporter + tag taxonomy ([docs/TESTING.md](./docs/TESTING.md))   | ✅    |
+| M7        | GitHub Actions (sharded matrix + merged report + Allure→Pages + notify) · Docker · GitLab/Jenkins refs       | ✅    |
+| M8        | Experimental AI layer — schema-bound data gen, suggest-only locator heal, story→draft scaffolder (env-gated) | ✅    |
+| M9        | Docs & portfolio polish                                                                                      | ⏳    |
 
 ## License
 

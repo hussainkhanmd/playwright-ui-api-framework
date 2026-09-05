@@ -13,6 +13,7 @@ Tags go in the `describe` / `test` title (Playwright greps titles).
 | `@e2e`        | Crosses layers (API seed → UI assert) or spans a full user journey.               |
 | `@a11y`       | axe-core accessibility scan.                                                      |
 | `@visual`     | Screenshot comparison.                                                            |
+| `@ai`         | Experimental `src/ai/` layer (isolation guard; runs in the `api` project).        |
 
 A test can carry several: `@e2e @smoke`, `@ui @regression`.
 
