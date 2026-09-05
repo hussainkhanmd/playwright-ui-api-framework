@@ -38,12 +38,34 @@ The framework ships **POM enhanced with component objects**: small reusable UI c
 classes; Screenplay (actors, tasks, questions) is more scalable but heavier to learn and read.
 POM-with-components is the pragmatic middle. A documented migration path to Screenplay will live here.
 
-## Why Playwright's `request` context, not a REST-assured-style library _(expanded in M2)_
+## Why Playwright's `request` context, not a REST-assured-style library
 
 Using `APIRequestContext` instead of Axios/supertest/REST-assured means: shared config and proxy
 settings, API calls visible in the same trace as UI steps, one auth story for both layers, and no
-extra dependency. Schema validation (zod) and a per-resource service layer give the structure a
-dedicated library would otherwise provide.
+extra dependency. The structure a dedicated library would give us is provided explicitly:
+
+| Concern                                            | Where                                                                                             |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Transport (headers, timing, logging, body parsing) | `src/api/client/http-client.ts`                                                                   |
+| Per-resource operations                            | `src/api/services/*.service.ts` (`PostsService`, `UsersService`, `AuthService`)                   |
+| Response contracts                                 | `src/api/schemas/*.schema.ts` (zod; DTO types are `z.infer` of the schema)                        |
+| Status assertions                                  | `assertStatus()` in `http-client.ts` — identical message everywhere                               |
+| Schema assertions                                  | `assertSchema()` in `src/common/utils/validate.ts` — throws a readable path list, not a JSON wall |
+
+Every service method validates its response before returning, so a spec that calls
+`api.posts.get(1)` either gets a fully-typed `Post` or a loud, located failure.
+
+## Backend isolation for parallel API tests
+
+The local mock (`mocks/json-server`) is booted **once per worker** on `MOCK_SERVER_PORT + workerIndex`
+from a fresh in-memory copy of `db.json` (`api.fixtures.ts`, worker scope). Without this, parallel
+workers sharing one mutable server collide on auto-incremented ids and pollute each other's reads.
+With it, writes are safe to parallelise and each worker starts from known state. Point `API_BASE_URL`
+at a real server and no mock starts — every worker uses that shared server instead.
+
+The `seed` fixture (`data.fixtures.ts`) creates rows through the API and deletes them in reverse
+order on teardown, so no test leaves state behind or depends on another test's data. UI-created
+data is never used as a fixture — seeding goes through the API for speed and determinism.
 
 ## Retry philosophy _(expanded in M6)_
 

@@ -1,0 +1,4 @@
+name,username,email,expectStatus
+Grace Hopper,ghopper,grace@example.com,201
+Katherine Johnson,kjohnson,katherine@example.com,201
+Margaret Hamilton,mhamilton,margaret@example.com,201

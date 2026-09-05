@@ -1,4 +1,4 @@
-import { test as loggerTest } from './logger.fixtures.js';
+import { test as dataTest } from './data.fixtures.js';
 
 /**
  * The single `test` object every spec imports.
@@ -7,15 +7,14 @@ import { test as loggerTest } from './logger.fixtures.js';
  *
  * Specs never import from '@playwright/test' directly — that keeps dependency
  * injection (page objects, API clients, seeded data, auth state, logging) in
- * one place and out of individual tests. Each concern lives in its own
- * `*.fixtures.ts` module and is merged here as it is built:
+ * one place and out of individual tests.
  *
- *   M1  logger.fixtures      (done)
- *   M2  api.fixtures         service clients on APIRequestContext
- *   M2  data.fixtures        faker factories + API-seeded data w/ teardown
- *   M3  auth.fixtures        API login once -> storageState for UI
- *   M4  pages.fixtures       lazily-instantiated page objects
+ * Fixtures compose as a chain (each layer genuinely builds on the one before):
+ *
+ *   logger  ->  api  ->  data  ->  auth (M3)  ->  pages (M4)
+ *
+ * `base.fixtures` always re-exports the tail of that chain.
  */
-export const test = loggerTest;
+export const test = dataTest;
 
 export { expect } from '@playwright/test';

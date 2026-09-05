@@ -1,0 +1,21 @@
+[
+  {
+    "name": "minimal post",
+    "input": { "userId": 1, "title": "Minimal", "body": "x" },
+    "expectStatus": 201
+  },
+  {
+    "name": "long body",
+    "input": {
+      "userId": 3,
+      "title": "Long body case",
+      "body": "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor"
+    },
+    "expectStatus": 201
+  },
+  {
+    "name": "unicode title",
+    "input": { "userId": 9, "title": "日本語のタイトル", "body": "unicode body" },
+    "expectStatus": 201
+  }
+]
