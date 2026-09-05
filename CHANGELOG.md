@@ -37,13 +37,26 @@ regression work, with CI/CD, reporting, and contract testing in place.
 
 ### Changed
 
-- `merge-report` CI job now skips cleanly when the test jobs were skipped
-  (e.g. after a `quality` failure) instead of erroring on missing blob reports.
-- `allure-publish` workflow now runs only when CI concluded `success`, so a
-  failed run no longer errors trying to download a non-existent results artifact.
+- Visual regression is now its own **chromium-only** `visual` project (was
+  fanned across all three browsers via the shared UI `testMatch`). It runs in a
+  dedicated CI job inside the pinned Playwright image so Linux screenshot
+  baselines are byte-stable. New `Update visual baselines` workflow
+  (`workflow_dispatch`) regenerates and commits them from that same image.
+- Screenshot baselines renamed `*-chromium-darwin.png` → `*-visual-darwin.png`
+  to match the new project; `*-visual-linux.png` baselines added for CI.
+- `merge-report` CI job skips cleanly when the test jobs were skipped
+  (e.g. after a `quality` failure) instead of erroring on missing blob reports,
+  and merges cross-runner blobs via `playwright.merge.config.ts`.
+- `allure-publish` workflow runs only when CI concluded `success`.
 
 ### Fixed
 
+- `MOCK_SERVER_AUTO_START` defaulted to `false`, so CI (no `.env` file) started
+  no mock backend and every API test failed with `ECONNREFUSED`. Now defaults
+  to `true`.
+- The `setup` project runs on chromium regardless of the matrix browser; the
+  `firefox`/`webkit` CI shards didn't install chromium, so every dependent test
+  failed. CI now installs chromium alongside the matrix browser.
 - Broken `OWNER/REPO` placeholder links in the README badges.
 - Prettier formatting of the committed VS Code workspace file (unblocked CI).
 
