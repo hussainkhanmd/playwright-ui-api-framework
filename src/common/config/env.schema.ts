@@ -14,6 +14,13 @@ const booleanish = z
   .transform((v) => v === 'true' || v === '1')
   .default(false);
 
+// Same shape as `booleanish` but defaults to `true` — for flags that should be
+// on unless explicitly disabled (e.g. the offline mock backend).
+const booleanishDefaultTrue = z
+  .enum(['true', 'false', '1', '0', ''])
+  .transform((v) => v !== 'false' && v !== '0')
+  .default(true);
+
 const optionalUrl = z.url().optional();
 
 export const envSchema = z
@@ -26,7 +33,9 @@ export const envSchema = z
     THE_INTERNET_BASE_URL: optionalUrl,
 
     MOCK_SERVER_PORT: z.coerce.number().int().positive().default(3001),
-    MOCK_SERVER_AUTO_START: booleanish,
+    // On unless explicitly disabled: API tests target the local mock by default,
+    // so CI (which has no .env file) must still auto-start it.
+    MOCK_SERVER_AUTO_START: booleanishDefaultTrue,
 
     UI_USERNAME: z.string().min(1).default('standard_user'),
     UI_PASSWORD: z.string().min(1).default('secret_sauce'),
