@@ -61,9 +61,15 @@ export default tseslint.config(
     },
   },
 
-  // Config / scripts / mocks may use console and Node globals freely.
+  // Config / scripts / mocks / reporters may use console and Node globals freely.
   {
-    files: ['scripts/**/*.ts', 'mocks/**/*.ts', '*.mjs', '*.config.ts'],
+    files: [
+      'scripts/**/*.ts',
+      'mocks/**/*.ts',
+      'src/common/reporting/**/*.ts',
+      '*.mjs',
+      '*.config.ts',
+    ],
     rules: {
       'no-console': 'off',
     },

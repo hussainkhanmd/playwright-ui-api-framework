@@ -47,7 +47,34 @@ export default defineConfig({
   reporter: [
     config.isCI ? ['blob'] : ['list'],
     ['html', { outputFolder: 'reports/html-report', open: 'never' }],
-    ['allure-playwright', { resultsDir: 'reports/allure-results', detail: true }],
+    [
+      'allure-playwright',
+      {
+        resultsDir: 'reports/allure-results',
+        detail: true,
+        environmentInfo: {
+          test_env: config.testEnv,
+          ui_base_url: config.urls.ui,
+          api_base_url: config.urls.api,
+          node: process.version,
+          ci: String(config.isCI),
+        },
+        categories: [
+          {
+            name: 'Product defects',
+            matchedStatuses: ['failed'],
+            messageRegex: '.*(expect|toHaveText|toBeVisible|Schema validation).*',
+          },
+          { name: 'Test infrastructure', matchedStatuses: ['broken'] },
+          {
+            name: 'Timeouts',
+            matchedStatuses: ['failed', 'broken'],
+            messageRegex: '.*(Timeout|timed out).*',
+          },
+        ],
+      },
+    ],
+    ['./src/common/reporting/slowest-tests.reporter.ts'],
   ],
 
   globalSetup: './scripts/global-setup.ts',

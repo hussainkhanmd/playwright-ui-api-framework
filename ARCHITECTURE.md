@@ -143,11 +143,31 @@ don't cause false diffs. Baselines are **committed** and platform-suffixed
 the official Playwright Docker image so its Linux baselines (`-chromium-linux.png`) are byte-stable —
 never trust a screenshot baseline generated on a different OS/font stack than the one comparing it.
 
+## Reporting
+
+Four reporters run together:
+
+- **Terminal** — `list` locally, `blob` in CI (blob shards merge into one report).
+- **Custom** (`src/common/reporting/slowest-tests.reporter.ts`) — prints the slowest five tests and a
+  pass/flaky tally at the end. Early warning for a test drifting toward a timeout.
+- **Playwright HTML** — trace/video/screenshot on failure.
+- **Allure** — stakeholder-facing. Uses the Allure 3 **Node** CLI (`allure` package), so building the
+  report needs no Java. `environmentInfo` and `categories` are set in `playwright.config.ts`;
+  per-test logs, axe JSON, traces and videos attach automatically.
+
 ## Retry philosophy
 
 `retries = CI ? 2 : 0`. Locally, a flaky test fails so its flaky design is visible. In CI, retries
 absorb genuine infrastructure noise. `trace: 'on-first-retry'` means the first retry is always
 debuggable. Retries are not a substitute for fixing a badly-designed wait.
+
+**Flaky-by-design vs. environment flake.** A pass-on-retry is reported as _flaky_ (terminal tally +
+Allure flag) and is treated as a test bug, not a pass. Tells that it's the test's fault, not the
+environment: it depends on another test's data (fix: use the `seed` fixture); it asserts on a value
+that races a network response (fix: web-first assertion, not a bare `expect(await ...)`); it uses a
+`nth()` / text locator that isn't unique (fix: scope to a component root); it relies on animation
+timing (fix: `animations: 'disabled'`). Genuine environment flake looks like connection resets or
+cold-start timeouts spread randomly across unrelated tests — that's what the CI retries are for.
 
 ## AI layer isolation boundary _(expanded in M8)_
 
