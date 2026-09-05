@@ -38,10 +38,11 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- 'tests/visual/**'; then
+          git add 'tests/visual/**'
+          # --cached so newly-written (untracked) baselines count, not just edits.
+          if git diff --cached --quiet; then
             echo "No baseline changes."
             exit 0
           fi
-          git add 'tests/visual/**'
           git commit -m "test(visual): refresh Linux screenshot baselines [skip ci]"
           git push
